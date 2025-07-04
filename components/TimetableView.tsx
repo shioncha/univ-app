@@ -2,6 +2,7 @@ import { useIsFocused, useTheme } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Database } from "../services/database";
 import { ClassSession, Subject, TimetableEntry } from "../types";
 import { SubjectCell } from "./SubjectCell";

@@ -1,4 +1,3 @@
-import { TimetableView } from "@/components/TimetableView";
 import { Ionicons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@react-navigation/native";
@@ -11,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { TimetableView } from "@/components/TimetableView";
 
 export default function HomeScreen() {
   const router = useRouter(); // routerを取得

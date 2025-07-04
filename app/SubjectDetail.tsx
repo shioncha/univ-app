@@ -1,5 +1,3 @@
-import { Database } from "@/services/database";
-import { ClassSession, Subject } from "@/types";
 import { useIsFocused, useTheme } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -13,6 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { Database } from "@/services/database";
+import { ClassSession, Subject } from "@/types";
 
 const DAYS = ["月", "火", "水", "木", "金", "土"];
 

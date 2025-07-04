@@ -1,4 +1,3 @@
-import { Database } from "@/services/database";
 import { useTheme } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,6 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { Database } from "@/services/database";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [1, 2, 3, 4, 5];

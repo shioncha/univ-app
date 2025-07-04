@@ -1,5 +1,6 @@
-import { ClassSession, Subject } from "@/types";
 import * as SQLite from "expo-sqlite";
+
+import { ClassSession, Subject } from "@/types";
 
 // 新しいAPI: openDatabaseSync を使用
 const db = SQLite.openDatabaseSync("timetable.db");
