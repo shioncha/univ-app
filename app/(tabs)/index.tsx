@@ -1,5 +1,8 @@
 import { TimetableView } from "@/components/TimetableView";
-import { Ionicons } from "@expo/vector-icons"; // アイコン表示のために必要
+import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useTheme } from "@react-navigation/native";
+import { useRouter } from "expo-router"; // useRouterをインポート
 import React from "react";
 import {
   SafeAreaView,
@@ -10,6 +13,10 @@ import {
 } from "react-native";
 
 export default function HomeScreen() {
+  const router = useRouter(); // routerを取得
+  const { colors } = useTheme(); // ダークモード対応のためテーマカラーを取得
+  const tabBarHeight = useBottomTabBarHeight();
+
   // 現在の日付を取得してフォーマットする
   const today = new Date();
   const dateString = `${today.getMonth() + 1}月${today.getDate()}日 (${
@@ -17,23 +24,32 @@ export default function HomeScreen() {
   })`;
 
   return (
-    // SafeAreaViewで囲み、背景色を設定
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: colors.background },
+        { marginBottom: tabBarHeight },
+      ]}
+    >
       {/* ヘッダー全体をまとめるView */}
       <View style={styles.headerContainer}>
-        {/* 日付とタイトル */}
         <View>
-          <Text style={styles.dateText}>{dateString}</Text>
-          <Text style={styles.title}>時間割</Text>
+          <Text style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}>
+            {dateString}
+          </Text>
+          <Text style={[styles.title, { color: colors.text }]}>時間割</Text>
         </View>
-        {/* 設定ボタン（将来の機能拡張用） */}
-        <TouchableOpacity style={styles.settingsButton}>
-          <Ionicons name="settings-outline" size={24} color="#555" />
+
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/SubjectEdit")} // 編集画面へ遷移
+        >
+          <Ionicons name="add" size={28} color={"#fff"} />
         </TouchableOpacity>
       </View>
 
       {/* 時間割本体 */}
-      <View style={{ flex: 1, paddingBottom: 30 }}>
+      <View style={{ flex: 1 }}>
         <TimetableView />
       </View>
     </SafeAreaView>
@@ -43,7 +59,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f7f8fa", // 全体の背景色
   },
   headerContainer: {
     flexDirection: "row",
@@ -56,17 +71,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#1c1c1e",
   },
   dateText: {
     fontSize: 14,
-    color: "#8a8a8e",
     marginBottom: 2,
     fontWeight: "600",
   },
-  settingsButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#e9e9eb",
+  // スタイル名を変更し、デザインを調整
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    // 影
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

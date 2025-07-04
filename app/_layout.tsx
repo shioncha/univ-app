@@ -9,12 +9,19 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useDatabase } from "@/hooks/useDatabase";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { isDBLoading } = useDatabase();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+
+  if (isDBLoading) {
+    // DB初期化中はローディング画面などを表示しても良い
+    return null;
+  }
 
   if (!loaded) {
     // Async font loading only occurs in development.

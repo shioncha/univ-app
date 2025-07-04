@@ -1,3 +1,4 @@
+import { useTheme } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -8,21 +9,28 @@ interface Props {
 }
 
 export const SubjectCell: React.FC<Props> = ({ subject }) => {
-  const router = useRouter(); // 変更
+  const router = useRouter();
+  const { colors } = useTheme(); // テーマカラーを取得
 
   const handlePress = () => {
     if (subject) {
-      // 遷移先にオブジェクトを渡す
       router.push({
-        pathname: "/SubjectDetail", // パス名で指定
+        pathname: "/SubjectDetail",
         params: { subjectId: subject.id },
       });
     }
   };
 
+  // 授業がない場合、テーマに合わせた背景色と枠線を表示
   if (!subject) {
-    // 授業がなければ空のセルを表示
-    return <View style={styles.emptyCell} />;
+    return (
+      <View
+        style={[
+          styles.emptyCell,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      />
+    );
   }
 
   return (
@@ -30,7 +38,9 @@ export const SubjectCell: React.FC<Props> = ({ subject }) => {
       style={[styles.cell, { backgroundColor: subject.color }]}
       onPress={handlePress}
     >
-      <Text style={styles.subjectName}>{subject.name}</Text>
+      <Text style={styles.subjectName} numberOfLines={2}>
+        {subject.name}
+      </Text>
       {subject.room && <Text style={styles.roomName}>{subject.room}</Text>}
     </TouchableOpacity>
   );
@@ -39,8 +49,9 @@ export const SubjectCell: React.FC<Props> = ({ subject }) => {
 const styles = StyleSheet.create({
   emptyCell: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
     margin: 1,
+    borderRadius: 4,
+    borderWidth: 0.5,
   },
   cell: {
     flex: 1,
@@ -59,6 +70,7 @@ const styles = StyleSheet.create({
   roomName: {
     fontSize: 11,
     color: "#fff",
+    opacity: 0.8,
     marginTop: 2,
   },
 });
