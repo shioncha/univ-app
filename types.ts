@@ -31,3 +31,8 @@ export type RootStackParamList = {
   SubjectDetail: { subjectId: number }; // 詳細画面はsubjectIdを受け取る
   // 他の画面もここに追加
 };
+
+export interface TaskWithSubject extends Task {
+  subjectName: string;
+  subjectColor: string;
+}

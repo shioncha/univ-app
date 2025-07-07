@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
 
-import { ClassSession, Subject } from "@/types";
+import { ClassSession, Subject, Task, TaskWithSubject } from "@/types";
 
 // 新しいAPI: openDatabaseSync を使用
 const db = SQLite.openDatabaseSync("timetable.db");
@@ -10,8 +10,6 @@ const db = SQLite.openDatabaseSync("timetable.db");
  * アプリ起動時に一度だけ呼び出す
  */
 const initDB = async (): Promise<void> => {
-  // ▼▼▼ 修正点 ▼▼▼
-  // PRAGMA文をトランザクションの外に移動します
   await db.execAsync("PRAGMA journal_mode = WAL;");
 
   // withTransactionAsync でテーブル作成処理のみを囲みます
@@ -149,6 +147,67 @@ const updateClass = async (
   );
 };
 
+/**
+ * 新しい課題を追加する
+ * @param task - 追加する課題情報 (IDとis_doneは除く)
+ * @returns 追加された課題のID
+ */
+const addTask = async (task: Omit<Task, "id" | "is_done">): Promise<number> => {
+  const result = await db.runAsync(
+    "INSERT INTO Tasks (subject_id, content, due_date) VALUES (?, ?, ?);",
+    task.subject_id,
+    task.content,
+    task.due_date
+  );
+  return result.lastInsertRowId;
+};
+
+/**
+ * 特定の授業に関連する課題をすべて取得する (締め切り順)
+ * @param subjectId - 授業のID
+ * @returns 課題のリスト
+ */
+const getTasksBySubjectId = async (subjectId: number): Promise<Task[]> => {
+  // getAllAsyncを使って、条件に一致するすべての行をオブジェクトの配列として取得します。
+  return await db.getAllAsync<Task>(
+    "SELECT * FROM Tasks WHERE subject_id = ? ORDER BY due_date ASC;",
+    subjectId
+  );
+};
+
+/**
+ * 課題の完了状態を更新する
+ * @param taskId - 更新する課題のID
+ * @param isDone - 新しい完了状態 (true/false)
+ */
+const updateTaskStatus = async (
+  taskId: number,
+  isDone: boolean
+): Promise<void> => {
+  // isDoneがtrueなら1、falseなら0をデータベースに保存します。
+  await db.runAsync(
+    "UPDATE Tasks SET is_done = ? WHERE id = ?;",
+    isDone ? 1 : 0,
+    taskId
+  );
+};
+
+/**
+ * すべての課題を、関連する授業情報と共に取得する
+ */
+const getAllTasks = async (): Promise<TaskWithSubject[]> => {
+  const query = `
+    SELECT
+      Tasks.*,
+      Subjects.name AS subjectName,
+      Subjects.color AS subjectColor
+    FROM Tasks
+    JOIN Subjects ON Tasks.subject_id = Subjects.id
+    ORDER BY Tasks.is_done ASC, Tasks.due_date ASC;
+  `;
+  return await db.getAllAsync<TaskWithSubject>(query);
+};
+
 // 作成した関数をエクスポート
 export const Database = {
   initDB,
@@ -159,4 +218,8 @@ export const Database = {
   deleteSubject,
   updateSubject,
   updateClass,
+  addTask,
+  getTasksBySubjectId,
+  updateTaskStatus,
+  getAllTasks,
 };
