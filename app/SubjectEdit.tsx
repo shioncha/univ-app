@@ -1,7 +1,8 @@
 import { useTheme } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Keyboard,
   SafeAreaView,
@@ -28,7 +29,13 @@ const COLORS = [
 
 export default function SubjectEditScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const params = useLocalSearchParams();
   const { colors } = useTheme();
+
+  // 編集モードかどうかを判定
+  const subjectId = Number(params.subjectId);
+  const isEditMode = !isNaN(subjectId);
 
   // フォームの各入力値を管理するstate
   const [name, setName] = useState("");
@@ -37,47 +44,99 @@ export default function SubjectEditScreen() {
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 編集モードの場合、既存のデータを読み込んでフォームにセットする
+  useEffect(() => {
+    navigation.setOptions({ title: isEditMode ? "授業の編集" : "授業の追加" });
+
+    if (isEditMode) {
+      const loadData = async () => {
+        try {
+          const { subject, sessions } = await Database.getSubjectById(
+            subjectId
+          );
+          if (subject) {
+            setName(subject.name);
+            setTeacher(subject.teacher || "");
+            setRoom(subject.room || "");
+            setSelectedColor(subject.color);
+            if (sessions.length > 0) {
+              setSelectedDay(sessions[0].day_of_week);
+              setSelectedPeriod(sessions[0].period);
+            }
+          }
+        } catch (error) {
+          console.error(error);
+          Alert.alert("エラー", "データの読み込みに失敗しました。");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isEditMode, subjectId]);
 
   const handleSave = async () => {
-    // 入力チェック
     if (!name.trim()) {
       Alert.alert("エラー", "授業名を入力してください。");
       return;
     }
 
     try {
-      // 1. 授業情報をDBに保存
-      const newSubjectId = await Database.addSubject({
-        name: name.trim(),
-        teacher: teacher.trim(),
-        room: room.trim(),
-        color: selectedColor,
-      });
-
-      // 2. 時間割のコマ情報をDBに保存
-      await Database.addClass({
-        subject_id: newSubjectId,
-        day_of_week: selectedDay,
-        period: selectedPeriod,
-      });
-
-      Alert.alert("成功", "新しい授業を追加しました。");
-      // 保存後、前の画面に戻る
+      if (isEditMode) {
+        // --- 編集モードの処理 ---
+        await Database.updateSubject({
+          id: subjectId,
+          name: name.trim(),
+          teacher: teacher.trim(),
+          room: room.trim(),
+          color: selectedColor,
+        });
+        await Database.updateClass({
+          subject_id: subjectId,
+          day_of_week: selectedDay,
+          period: selectedPeriod,
+        });
+        Alert.alert("成功", "授業情報を更新しました。");
+      } else {
+        // --- 新規作成モードの処理 ---
+        const newSubjectId = await Database.addSubject({
+          name: name.trim(),
+          teacher: teacher.trim(),
+          room: room.trim(),
+          color: selectedColor,
+        });
+        await Database.addClass({
+          subject_id: newSubjectId,
+          day_of_week: selectedDay,
+          period: selectedPeriod,
+        });
+        Alert.alert("成功", "新しい授業を追加しました。");
+      }
       router.back();
     } catch (error) {
       console.error(error);
-      Alert.alert("エラー", "授業の追加に失敗しました。");
+      Alert.alert("エラー", "保存に失敗しました。");
     }
   };
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        size="large"
+        style={{ flex: 1, backgroundColor: colors.background }}
+      />
+    );
+  }
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
     >
-      <ScrollView
-        style={styles.container}
-        onScrollBeginDrag={Keyboard.dismiss} // スクロール時にキーボードを閉じる
-      >
+      <ScrollView style={styles.container} onScrollBeginDrag={Keyboard.dismiss}>
         <Text style={[styles.label, { color: colors.text }]}>授業名 *</Text>
         <TextInput
           style={[
@@ -133,6 +192,7 @@ export default function SubjectEditScreen() {
               key={day}
               style={[
                 styles.chip,
+                { backgroundColor: colors.border },
                 selectedDay === index && { backgroundColor: colors.primary },
               ]}
               onPress={() => setSelectedDay(index)}
@@ -140,6 +200,7 @@ export default function SubjectEditScreen() {
               <Text
                 style={[
                   styles.chipText,
+                  { color: colors.text },
                   selectedDay === index && { color: "#fff" },
                 ]}
               >
@@ -154,6 +215,7 @@ export default function SubjectEditScreen() {
               key={period}
               style={[
                 styles.chip,
+                { backgroundColor: colors.border },
                 selectedPeriod === period && {
                   backgroundColor: colors.primary,
                 },
@@ -163,6 +225,7 @@ export default function SubjectEditScreen() {
               <Text
                 style={[
                   styles.chipText,
+                  { color: colors.text },
                   selectedPeriod === period && { color: "#fff" },
                 ]}
               >
@@ -187,7 +250,10 @@ export default function SubjectEditScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.primary }]}
+          onPress={handleSave}
+        >
           <Text style={styles.saveButtonText}>保存する</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -215,7 +281,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#e0e0e0",
   },
   chipText: {
     fontSize: 14,
@@ -236,7 +301,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   saveButton: {
-    backgroundColor: "#0a7ea4",
     padding: 16,
     borderRadius: 8,
     alignItems: "center",

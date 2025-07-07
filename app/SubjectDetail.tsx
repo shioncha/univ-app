@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useTheme } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -31,23 +32,35 @@ export default function SubjectDetailScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 画面が表示されている、かつsubjectIdが有効な場合のみデータを読み込む
     if (isFocused && !isNaN(subjectId)) {
       loadSubjectData();
     }
   }, [isFocused, subjectId]);
 
+  useEffect(() => {
+    if (subject) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleEdit}
+            style={{ paddingHorizontal: 10 }}
+          >
+            <Ionicons name="create-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [navigation, colors, subject]);
+
   const loadSubjectData = async () => {
     try {
       setLoading(true);
-      // データベースからIDを指定してデータを取得
       const { subject: foundSubject, sessions: foundSessions } =
         await Database.getSubjectById(subjectId);
 
       setSubject(foundSubject);
       setSessions(foundSessions);
 
-      // ヘッダータイトルを動的に設定
       navigation.setOptions({ title: foundSubject?.name || "見つかりません" });
     } catch (error) {
       console.error("授業データの読み込みに失敗しました", error);
@@ -55,6 +68,14 @@ export default function SubjectDetailScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = () => {
+    if (!subject) return;
+    router.push({
+      pathname: "/SubjectEdit",
+      params: { subjectId: subject.id },
+    });
   };
 
   const handleDelete = () => {
@@ -105,13 +126,13 @@ export default function SubjectDetailScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             基本情報
           </Text>
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.label, { color: colors.text }]}>担当教員</Text>
             <Text style={[styles.value, { color: colors.text }]}>
               {subject.teacher || "未設定"}
             </Text>
           </View>
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
             <Text style={[styles.label, { color: colors.text }]}>教室</Text>
             <Text style={[styles.value, { color: colors.text }]}>
               {subject.room || "未設定"}
@@ -123,19 +144,22 @@ export default function SubjectDetailScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             時間割
           </Text>
-          {sessions.map((session) => (
-            <View key={session.id} style={styles.infoRow}>
+          {sessions.map((session, index) => (
+            <View
+              key={session.id}
+              style={[
+                styles.infoRow,
+                {
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: index === sessions.length - 1 ? 0 : 1,
+                },
+              ]}
+            >
               <Text style={[styles.value, { color: colors.text }]}>
                 {DAYS[session.day_of_week]}曜日 {session.period}限
               </Text>
             </View>
           ))}
-        </View>
-
-        <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.button} onPress={handleDelete}>
-            <Text style={styles.deleteButtonText}>この授業を削除</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -159,13 +183,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   label: { fontSize: 16 },
   value: { fontSize: 16, fontWeight: "500" },
   actionSection: { marginVertical: 24, paddingHorizontal: 16 },
   button: {
-    backgroundColor: "#fde8e8",
     padding: 16,
     borderRadius: 8,
     alignItems: "center",

@@ -6,6 +6,14 @@ export interface Subject {
   color: string; // 例: '#ffc107'
 }
 
+export interface Task {
+  id: number;
+  subject_id: number; // 関連する授業のID
+  content: string; // 課題の内容
+  due_date: string; // 課題の締め切り (YYYY-MM-DD形式)
+  is_done: number; // 課題の完了状態
+}
+
 export interface ClassSession {
   id: number;
   subject_id: number;

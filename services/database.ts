@@ -119,6 +119,36 @@ const deleteSubject = async (id: number): Promise<void> => {
   await db.runAsync("DELETE FROM Subjects WHERE id = ?;", id);
 };
 
+/**
+ * 既存の授業情報を更新する
+ * @param subject - 更新する授業情報（IDを含む）
+ */
+const updateSubject = async (subject: Subject): Promise<void> => {
+  await db.runAsync(
+    "UPDATE Subjects SET name = ?, teacher = ?, room = ?, color = ? WHERE id = ?;",
+    subject.name,
+    subject.teacher || null,
+    subject.room || null,
+    subject.color,
+    subject.id
+  );
+};
+
+/**
+ * 既存のコマ情報を更新する (UIが1授業1コマなので、最初の1件を更新)
+ * @param classSession - 更新するコマ情報
+ */
+const updateClass = async (
+  classSession: Omit<ClassSession, "id">
+): Promise<void> => {
+  await db.runAsync(
+    "UPDATE Classes SET day_of_week = ?, period = ? WHERE subject_id = ?;",
+    classSession.day_of_week,
+    classSession.period,
+    classSession.subject_id
+  );
+};
+
 // 作成した関数をエクスポート
 export const Database = {
   initDB,
@@ -127,4 +157,6 @@ export const Database = {
   getTimetable,
   getSubjectById,
   deleteSubject,
+  updateSubject,
+  updateClass,
 };
