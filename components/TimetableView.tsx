@@ -25,7 +25,6 @@ export const TimetableView: React.FC = () => {
 
   const loadTimetableData = async () => {
     try {
-      setIsLoading(true);
       const { subjects, classes } = await Database.getTimetable();
       processAndSetTimetable(subjects, classes);
     } catch (error) {
