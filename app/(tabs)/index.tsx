@@ -78,14 +78,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     fontWeight: "600",
   },
-  // スタイル名を変更し、デザインを調整
   addButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    // 影
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

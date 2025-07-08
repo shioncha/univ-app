@@ -66,7 +66,6 @@ export default function SubjectDetailScreen() {
    */
   const loadAllData = async () => {
     try {
-      setLoading(true);
       const subjectData = await Database.getSubjectById(subjectId);
       const taskData = await Database.getTasksBySubjectId(subjectId);
 

@@ -100,7 +100,6 @@ export default function SubjectEditScreen() {
           day_of_week: selectedDay,
           period: selectedPeriod,
         });
-        Alert.alert("成功", "授業情報を更新しました。");
       } else {
         // --- 新規作成モードの処理 ---
         const newSubjectId = await Database.addSubject({
@@ -114,7 +113,6 @@ export default function SubjectEditScreen() {
           day_of_week: selectedDay,
           period: selectedPeriod,
         });
-        Alert.alert("成功", "新しい授業を追加しました。");
       }
       router.back();
     } catch (error) {
