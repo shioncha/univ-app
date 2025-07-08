@@ -33,7 +33,6 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
         <Stack.Screen
           name="SubjectDetail"
           options={{
@@ -41,6 +40,15 @@ export default function RootLayout() {
             headerBackTitle: "戻る",
           }}
         />
+        <Stack.Screen
+          name="SubjectEdit"
+          options={{ title: "編集", headerBackTitle: "戻る" }}
+        />
+        <Stack.Screen
+          name="QRCodeScreen"
+          options={{ title: "QRコード", presentation: "modal" }}
+        />
+        <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

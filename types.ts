@@ -29,8 +29,19 @@ export interface TimetableEntry extends ClassSession {
 export type RootStackParamList = {
   Home: undefined; // ホーム画面はパラメータなし
   SubjectDetail: { subjectId: number }; // 詳細画面はsubjectIdを受け取る
-  // 他の画面もここに追加
+  SubjectEdit: { subjectId?: number }; // 編集画面はオプションでsubjectIdを受け取る
+  QRCodeScreen: undefined; // QRコード画面はパラメータなし
 };
+
+// 時間割のインポートとエクスポート用の型
+export interface TimetableData {
+  subjects: Omit<Subject, "id">[];
+  classes: {
+    subjectIndex: number;
+    day_of_week: number;
+    period: number;
+  }[];
+}
 
 export interface TaskWithSubject extends Task {
   subjectName: string;

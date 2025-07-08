@@ -1,6 +1,12 @@
 import * as SQLite from "expo-sqlite";
 
-import { ClassSession, Subject, Task, TaskWithSubject } from "@/types";
+import {
+  ClassSession,
+  Subject,
+  Task,
+  TaskWithSubject,
+  TimetableData,
+} from "@/types";
 
 // 新しいAPI: openDatabaseSync を使用
 const db = SQLite.openDatabaseSync("timetable.db");
@@ -236,6 +242,76 @@ const getIncompleteTaskCountsBySubject = async (): Promise<
   }, {} as Record<number, number>);
 };
 
+/**
+ * エクスポート用にすべての時間割データを取得する
+ */
+const getAllDataForExport = async (): Promise<TimetableData> => {
+  // IDを除いた授業情報を取得
+  const subjects = await db.getAllAsync<Omit<Subject, "id">>(
+    "SELECT name, teacher, room, color FROM Subjects;"
+  );
+
+  // 授業名と時間割情報を結合して取得
+  const classesWithSubjectName = await db.getAllAsync<{
+    name: string;
+    day_of_week: number;
+    period: number;
+  }>(
+    "SELECT Subjects.name, Classes.day_of_week, Classes.period FROM Classes JOIN Subjects ON Classes.subject_id = Subjects.id;"
+  );
+
+  // 授業名をsubjects配列のインデックスに変換するためのマップを作成
+  const subjectsMap = new Map(subjects.map((s, i) => [s.name, i]));
+
+  const classes = classesWithSubjectName
+    .map((c) => ({
+      subjectIndex: subjectsMap.get(c.name) ?? -1, // 授業名に対応するインデックスを取得
+      day_of_week: c.day_of_week,
+      period: c.period,
+    }))
+    .filter((c) => c.subjectIndex !== -1); // 見つからなかったものは除外
+
+  return { subjects, classes };
+};
+
+/**
+ * インポートしたデータでデータベースを上書きする
+ */
+const importData = async (data: TimetableData): Promise<void> => {
+  await db.withTransactionAsync(async () => {
+    // 既存のデータをすべて削除
+    await db.execAsync(
+      "DELETE FROM Tasks; DELETE FROM Classes; DELETE FROM Subjects;"
+    );
+
+    // 新しい授業データを挿入し、新しいIDを記録
+    const subjectIds = [];
+    for (const subject of data.subjects) {
+      const result = await db.runAsync(
+        "INSERT INTO Subjects (name, teacher, room, color) VALUES (?, ?, ?, ?);",
+        subject.name,
+        subject.teacher || null,
+        subject.room || null,
+        subject.color
+      );
+      subjectIds.push(result.lastInsertRowId);
+    }
+
+    // 新しい時間割データを挿入
+    for (const classInfo of data.classes) {
+      const subjectId = subjectIds[classInfo.subjectIndex]; // インデックスから新しいIDを取得
+      if (subjectId) {
+        await db.runAsync(
+          "INSERT INTO Classes (subject_id, day_of_week, period) VALUES (?, ?, ?);",
+          subjectId,
+          classInfo.day_of_week,
+          classInfo.period
+        );
+      }
+    }
+  });
+};
+
 // 作成した関数をエクスポート
 export const Database = {
   initDB,
@@ -252,4 +328,6 @@ export const Database = {
   getAllTasks,
   getIncompleteTasksCount,
   getIncompleteTaskCountsBySubject,
+  getAllDataForExport,
+  importData,
 };
