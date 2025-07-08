@@ -23,7 +23,7 @@ export interface ClassSession {
 
 // 画面表示用に情報を結合した型
 export interface TimetableEntry extends ClassSession {
-  subject: Subject | null;
+  subject: (Subject & { taskCount?: number }) | null;
 }
 
 export type RootStackParamList = {

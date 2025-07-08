@@ -6,7 +6,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Subject } from "../types";
 
 interface Props {
-  subject: Subject | null;
+  subject: (Subject & { taskCount?: number }) | null;
 }
 
 export const SubjectCell: React.FC<Props> = ({ subject }) => {
@@ -39,6 +39,11 @@ export const SubjectCell: React.FC<Props> = ({ subject }) => {
       style={[styles.cell, { backgroundColor: subject.color }]}
       onPress={handlePress}
     >
+      {typeof subject.taskCount === "number" && subject.taskCount > 0 && (
+        <View style={styles.badgeContainer}>
+          <Text style={styles.badgeText}>{subject.taskCount}</Text>
+        </View>
+      )}
       <Text style={styles.subjectName} numberOfLines={2}>
         {subject.name}
       </Text>
@@ -73,5 +78,24 @@ const styles = StyleSheet.create({
     color: "#fff",
     opacity: 0.8,
     marginTop: 2,
+  },
+  badgeContainer: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#ff3b30",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });

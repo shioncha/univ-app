@@ -25,8 +25,30 @@ export const TimetableView: React.FC = () => {
 
   const loadTimetableData = async () => {
     try {
-      const { subjects, classes } = await Database.getTimetable();
-      processAndSetTimetable(subjects, classes);
+      // 授業データと、科目ごとの課題数を並行して取得
+      const [timetableData, taskCounts] = await Promise.all([
+        Database.getTimetable(),
+        Database.getIncompleteTaskCountsBySubject(),
+      ]);
+
+      if (timetableData.subjects.length === 0) {
+        // 再度データを読み込む
+        const [newTimetableData, newTaskCounts] = await Promise.all([
+          Database.getTimetable(),
+          Database.getIncompleteTaskCountsBySubject(),
+        ]);
+        processAndSetTimetable(
+          newTimetableData.subjects,
+          newTimetableData.classes,
+          newTaskCounts
+        );
+      } else {
+        processAndSetTimetable(
+          timetableData.subjects,
+          timetableData.classes,
+          taskCounts
+        );
+      }
     } catch (error) {
       console.error("時間割データの読み込みに失敗しました", error);
     } finally {
@@ -36,19 +58,27 @@ export const TimetableView: React.FC = () => {
 
   const processAndSetTimetable = (
     subjects: Subject[],
-    classes: ClassSession[]
+    classes: ClassSession[],
+    taskCounts: Record<number, number>
   ) => {
     const grid: (TimetableEntry | null)[][] = Array(PERIODS.length)
       .fill(null)
       .map(() => Array(DAYS.length).fill(null));
+
     classes.forEach((cls) => {
       const subject = subjects.find((s) => s.id === cls.subject_id) || null;
-      if (
-        subject &&
-        cls.day_of_week < DAYS.length &&
-        cls.period - 1 < PERIODS.length
-      ) {
-        grid[cls.period - 1][cls.day_of_week] = { ...cls, subject };
+      if (subject) {
+        // 課題数をsubjectオブジェクトにマージ
+        const subjectWithTaskCount = {
+          ...subject,
+          taskCount: taskCounts[subject.id] || 0,
+        };
+        if (cls.day_of_week < DAYS.length && cls.period - 1 < PERIODS.length) {
+          grid[cls.period - 1][cls.day_of_week] = {
+            ...cls,
+            subject: subjectWithTaskCount,
+          };
+        }
       }
     });
     setTimetable(grid);

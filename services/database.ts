@@ -208,6 +208,34 @@ const getAllTasks = async (): Promise<TaskWithSubject[]> => {
   return await db.getAllAsync<TaskWithSubject>(query);
 };
 
+/**
+ * 未完了の課題の総数を取得する
+ * @returns 未完了の課題の数
+ */
+const getIncompleteTasksCount = async (): Promise<number> => {
+  const result = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM Tasks WHERE is_done = 0;"
+  );
+  return result?.count ?? 0;
+};
+
+/**
+ * 科目ごとの未完了課題数を取得する
+ * @returns { [subjectId: number]: number } 形式のオブジェクト
+ */
+const getIncompleteTaskCountsBySubject = async (): Promise<
+  Record<number, number>
+> => {
+  const results = await db.getAllAsync<{ subject_id: number; count: number }>(
+    "SELECT subject_id, COUNT(*) as count FROM Tasks WHERE is_done = 0 GROUP BY subject_id;"
+  );
+  // 配列を { subject_id: count } の形式のオブジェクトに変換
+  return results.reduce((acc, row) => {
+    acc[row.subject_id] = row.count;
+    return acc;
+  }, {} as Record<number, number>);
+};
+
 // 作成した関数をエクスポート
 export const Database = {
   initDB,
@@ -222,4 +250,6 @@ export const Database = {
   getTasksBySubjectId,
   updateTaskStatus,
   getAllTasks,
+  getIncompleteTasksCount,
+  getIncompleteTaskCountsBySubject,
 };
