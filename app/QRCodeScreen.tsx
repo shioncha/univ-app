@@ -3,7 +3,7 @@ import { useTheme } from "@react-navigation/native";
 import base64 from "base-64";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import pako from "pako";
+import { deflate, inflate } from "pako";
 import React, { useEffect, useRef, useState } from "react"; // useRefをインポート
 import {
   ActivityIndicator,
@@ -21,7 +21,7 @@ import { Database } from "@/services/database";
 import { TimetableData } from "@/types";
 
 interface CompactTimetableData {
-  s: { n: string; t?: string; c: string }[];
+  s: { n: string; t?: string; r?: string; c: string }[];
   c: { i: number; d: number; p: number }[];
 }
 
@@ -54,7 +54,12 @@ export default function QRCodeScreen() {
     try {
       const data = await Database.getAllDataForExport();
       const minifiedData = {
-        s: data.subjects.map((s) => ({ n: s.name, t: s.teacher, c: s.color })),
+        s: data.subjects.map((s) => ({
+          n: s.name,
+          t: s.teacher,
+          r: s.room,
+          c: s.color,
+        })),
         c: data.classes.map((c) => ({
           i: c.subjectIndex,
           d: c.day_of_week,
@@ -63,7 +68,7 @@ export default function QRCodeScreen() {
       };
       const jsonString = JSON.stringify(minifiedData);
 
-      const compressed = pako.deflate(jsonString);
+      const compressed = deflate(jsonString);
       let binaryString = "";
       for (let i = 0; i < compressed.length; i++) {
         binaryString += String.fromCharCode(compressed[i]);
@@ -81,8 +86,13 @@ export default function QRCodeScreen() {
       setMyQRChunks(prefixedChunks);
       setCurrentQRIndex(0);
     } catch (error) {
-      Alert.alert("エラー", "QRコード用データの生成に失敗しました。");
-      setMode("scan");
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラーです。";
+      Alert.alert(
+        "エラー",
+        `QRコード用データの生成に失敗しました。\n\n詳細: ${errorMessage}`,
+        [{ text: "OK", onPress: () => setMode("scan") }]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +147,7 @@ export default function QRCodeScreen() {
         // すでに読み込み済みの場合は、ロックをすぐに解除
         isProcessing.current = false;
       }
-    } catch (e) {
+    } catch {
       Alert.alert(
         "読み取りエラー",
         "このアプリ用のQRコードではないようです。",
@@ -174,7 +184,7 @@ export default function QRCodeScreen() {
               for (let i = 0; i < binaryString.length; i++) {
                 compressed[i] = binaryString.charCodeAt(i);
               }
-              const jsonString = pako.inflate(compressed, { to: "string" });
+              const jsonString = inflate(compressed, { to: "string" });
 
               const compactData = JSON.parse(
                 jsonString
@@ -186,7 +196,7 @@ export default function QRCodeScreen() {
                 subjects: compactData.s.map((cs) => ({
                   name: cs.n,
                   teacher: cs.t || "",
-                  room: "",
+                  room: cs.r || "",
                   color: cs.c,
                 })),
                 classes: compactData.c.map((cc) => ({
@@ -199,7 +209,7 @@ export default function QRCodeScreen() {
               Alert.alert("成功", "データのインポートが完了しました。", [
                 { text: "OK", onPress: () => router.back() },
               ]);
-            } catch (error) {
+            } catch {
               Alert.alert("エラー", "データの復元に失敗しました。", [
                 { text: "OK", onPress: resetScan },
               ]);
