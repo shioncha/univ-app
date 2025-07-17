@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useIsFocused, useTheme } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
@@ -22,6 +23,7 @@ const TaskItem: React.FC<{ item: TaskWithSubject; onToggle: () => void }> = ({
   const { colors } = useTheme();
   const isDone = item.is_done === 1;
   const iconName = isDone ? "checkmark-circle" : "ellipse-outline";
+  const formattedDate = item.due_date.substring(5).replace("-", "/");
 
   return (
     <View style={[styles.taskItemContainer, { backgroundColor: colors.card }]}>
@@ -57,7 +59,7 @@ const TaskItem: React.FC<{ item: TaskWithSubject; onToggle: () => void }> = ({
         </View>
       </View>
       <Text style={[styles.dueDate, { color: colors.text }]}>
-        {item.due_date.substring(5)}
+        {formattedDate}
       </Text>
     </View>
   );
@@ -66,6 +68,7 @@ const TaskItem: React.FC<{ item: TaskWithSubject; onToggle: () => void }> = ({
 export default function AllTasksScreen() {
   const { colors } = useTheme();
   const isFocused = useIsFocused();
+  const tabBarHeight = useBottomTabBarHeight();
   const [tasks, setTasks] = useState<TaskWithSubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -105,7 +108,11 @@ export default function AllTasksScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      style={[
+        styles.safeArea,
+        { backgroundColor: colors.background },
+        { marginBottom: tabBarHeight },
+      ]}
     >
       <View style={styles.headerContainer}>
         <Text style={[styles.title, { color: colors.text }]}>すべての課題</Text>

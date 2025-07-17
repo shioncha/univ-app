@@ -21,6 +21,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ item, onToggleStatus }) => {
   const isDone = item.is_done === 1;
   const iconName = isDone ? "checkmark-circle" : "ellipse-outline";
   const iconColor = isDone ? colors.primary : colors.text;
+  const formattedDate = item.due_date.substring(5).replace("-", "/");
 
   return (
     <View
@@ -45,7 +46,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ item, onToggleStatus }) => {
           {item.content}
         </Text>
         <Text style={[styles.dueDate, { color: colors.text, opacity: 0.7 }]}>
-          締め切り: {item.due_date}
+          締め切り: {formattedDate}
         </Text>
       </View>
     </View>
