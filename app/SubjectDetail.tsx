@@ -66,16 +66,24 @@ export default function SubjectDetailScreen() {
    */
   const loadAllData = async () => {
     try {
-      const subjectData = await Database.getSubjectById(subjectId);
+      const { subject: foundSubject, sessions: foundSessions } =
+        await Database.getSubjectById(subjectId);
       const taskData = await Database.getTasksBySubjectId(subjectId);
 
-      setSubject(subjectData.subject);
-      setSessions(subjectData.sessions);
-      setTasks(taskData);
-
-      navigation.setOptions({
-        title: subjectData.subject?.name || "見つかりません",
+      const sortedTasks = taskData.sort((a, b) => {
+        // is_done: 0 (未完了) を優先
+        if (a.is_done !== b.is_done) {
+          return a.is_done - b.is_done;
+        }
+        // is_doneが同じ場合は、締め切りが早い順
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
       });
+
+      setSubject(foundSubject);
+      setSessions(foundSessions);
+      setTasks(sortedTasks);
+
+      navigation.setOptions({ title: foundSubject?.name || "見つかりません" });
     } catch (error) {
       console.error("データの読み込みに失敗しました", error);
       Alert.alert("エラー", "データの読み込みに失敗しました。");
