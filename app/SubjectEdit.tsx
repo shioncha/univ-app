@@ -79,6 +79,9 @@ export default function SubjectEditScreen() {
     }
   }, [isEditMode, subjectId]);
 
+  /**
+   * 保存ボタンが押されたときの処理
+   */
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("エラー", "授業名を入力してください。");
@@ -114,11 +117,40 @@ export default function SubjectEditScreen() {
           period: selectedPeriod,
         });
       }
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      }
     } catch (error) {
       console.error(error);
       Alert.alert("エラー", "保存に失敗しました。");
     }
+  };
+
+  /**
+   * 削除ボタンが押されたときの処理
+   */
+  const handleDelete = () => {
+    Alert.alert("授業の削除", `「${name}」を完全に削除しますか？`, [
+      { text: "キャンセル", style: "cancel" },
+      {
+        text: "削除",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await Database.deleteSubject(subjectId);
+            Alert.alert("成功", "授業を削除しました。");
+            // 編集画面と詳細画面の両方から戻る
+            router.back(); // 編集画面から戻る
+            if (router.canGoBack()) {
+              router.back(); // 詳細画面から戻る
+            }
+          } catch (error) {
+            console.error("授業の削除に失敗しました", error);
+            Alert.alert("エラー", "授業の削除に失敗しました。");
+          }
+        },
+      },
+    ]);
   };
 
   if (isLoading) {
@@ -134,7 +166,11 @@ export default function SubjectEditScreen() {
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
     >
-      <ScrollView style={styles.container} onScrollBeginDrag={Keyboard.dismiss}>
+      <ScrollView
+        style={styles.container}
+        onScrollBeginDrag={Keyboard.dismiss} // スクロール時にキーボードを閉じる
+        keyboardShouldPersistTaps="handled" // タップ時にキーボード外でも反応
+      >
         <Text style={[styles.label, { color: colors.text }]}>授業名 *</Text>
         <TextInput
           style={[
@@ -254,6 +290,12 @@ export default function SubjectEditScreen() {
         >
           <Text style={styles.saveButtonText}>保存する</Text>
         </TouchableOpacity>
+
+        {isEditMode && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Text style={styles.deleteButtonText}>この授業を削除</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -307,6 +349,18 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#fff",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  deleteButton: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  deleteButtonText: {
+    color: "#c93c3c",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
