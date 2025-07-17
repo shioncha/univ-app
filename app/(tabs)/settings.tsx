@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -74,6 +75,7 @@ const MenuSection = ({ title, children, colors }) => {
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const handleExport = async () => {
     try {
@@ -136,7 +138,11 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      style={[
+        styles.safeArea,
+        { backgroundColor: colors.background },
+        { marginBottom: tabBarHeight },
+      ]}
     >
       <ScrollView>
         <View style={styles.headerContainer}>
