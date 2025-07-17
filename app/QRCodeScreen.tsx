@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Database } from "@/services/database";
 import { TimetableData } from "@/types";
@@ -30,6 +31,7 @@ export default function QRCodeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [mode, setMode] = useState<"scan" | "display">("scan");
   const [permission, requestPermission] = useCameraPermissions();
@@ -331,7 +333,7 @@ export default function QRCodeScreen() {
         <View style={styles.content}>
           {mode === "scan" ? renderScanner() : renderMyQRCode()}
         </View>
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           <TouchableOpacity
             style={[
               styles.tabButton,
