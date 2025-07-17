@@ -2,13 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import base64 from "base-64";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { deflate, inflate } from "pako";
-import React, { useEffect, useRef, useState } from "react"; // useRefをインポート
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Button,
+  Platform, // Platformをインポート
   SafeAreaView,
   StyleSheet,
   Text,
@@ -28,6 +29,7 @@ interface CompactTimetableData {
 export default function QRCodeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [mode, setMode] = useState<"scan" | "display">("scan");
   const [permission, requestPermission] = useCameraPermissions();
@@ -47,6 +49,30 @@ export default function QRCodeScreen() {
       requestPermission();
     }
   }, [permission]);
+
+  // iOSの場合のみヘッダーに完了ボタンを設置
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ paddingRight: 10 }}
+          >
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 20,
+                fontWeight: "bold",
+              }}
+            >
+              完了
+            </Text>
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [navigation, router, colors]);
 
   const loadMyDataForQRCode = async () => {
     setIsLoading(true);
@@ -99,7 +125,6 @@ export default function QRCodeScreen() {
   };
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    // ▼▼▼ 修正点: 処理中の場合は、新しいスキャンを完全に無視する ▼▼▼
     if (isProcessing.current) {
       return;
     }
