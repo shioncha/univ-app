@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { TaskList } from "@/components/TaskList";
@@ -26,6 +27,7 @@ export default function SubjectDetailScreen() {
   const params = useLocalSearchParams();
   const { colors } = useTheme();
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
 
   const subjectId = Number(params.subjectId);
 
@@ -212,6 +214,7 @@ export default function SubjectDetailScreen() {
             </View>
             <TaskList tasks={tasks} onToggleStatus={handleToggleTaskStatus} />
           </View>
+          <View style={{ height: insets.bottom + 20 }} />
         </ScrollView>
       </SafeAreaView>
 

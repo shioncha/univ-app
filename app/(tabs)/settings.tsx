@@ -9,6 +9,7 @@ import React from "react";
 import {
   Alert,
   Linking,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import {
 
 import { Database } from "@/services/database";
 import { TimetableData } from "@/types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // メニュー項目を再利用可能なコンポーネントとして定義
 const MenuItem = ({ icon, text, onPress, colors, isLast = false }) => (
@@ -76,6 +78,7 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
 
   const handleExport = async () => {
     try {
@@ -140,8 +143,11 @@ export default function SettingsScreen() {
     <SafeAreaView
       style={[
         styles.safeArea,
-        { backgroundColor: colors.background },
-        { marginBottom: tabBarHeight },
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: Platform.OS === "ios" ? tabBarHeight : 0,
+        },
       ]}
     >
       <ScrollView>
@@ -202,6 +208,9 @@ export default function SettingsScreen() {
             />
           </MenuSection>
         </View>
+        <TouchableOpacity onPress={() => Database.scheduleTestNotification()}>
+          <Text>テスト通知を送信</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

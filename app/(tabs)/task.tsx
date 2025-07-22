@@ -5,12 +5,14 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Database } from "@/services/database";
 import { TaskWithSubject } from "@/types";
@@ -69,6 +71,7 @@ export default function AllTasksScreen() {
   const { colors } = useTheme();
   const isFocused = useIsFocused();
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const [tasks, setTasks] = useState<TaskWithSubject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,8 +113,11 @@ export default function AllTasksScreen() {
     <SafeAreaView
       style={[
         styles.safeArea,
-        { backgroundColor: colors.background },
-        { marginBottom: tabBarHeight },
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: Platform.OS === "ios" ? tabBarHeight : 0,
+        },
       ]}
     >
       <View style={styles.headerContainer}>

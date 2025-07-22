@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Database } from "@/services/database";
 
@@ -31,6 +32,7 @@ export default function SubjectEditScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
   // 編集モードかどうかを判定
@@ -164,7 +166,12 @@ export default function SubjectEditScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      style={[
+        styles.safeArea,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
     >
       <ScrollView
         style={styles.container}
@@ -296,6 +303,7 @@ export default function SubjectEditScreen() {
             <Text style={styles.deleteButtonText}>この授業を削除</Text>
           </TouchableOpacity>
         )}
+        <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
     </SafeAreaView>
   );

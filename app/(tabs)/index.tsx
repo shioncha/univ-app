@@ -4,12 +4,13 @@ import { useTheme } from "@react-navigation/native";
 import { useRouter } from "expo-router"; // useRouterをインポート
 import React from "react";
 import {
-  SafeAreaView,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TimetableView } from "@/components/TimetableView";
 
@@ -17,6 +18,7 @@ export default function HomeScreen() {
   const router = useRouter(); // routerを取得
   const { colors } = useTheme(); // ダークモード対応のためテーマカラーを取得
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
 
   // 現在の日付を取得してフォーマットする
   const today = new Date();
@@ -25,11 +27,14 @@ export default function HomeScreen() {
   })`;
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.safeArea,
-        { backgroundColor: colors.background },
-        { marginBottom: tabBarHeight },
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top,
+          paddingBottom: Platform.OS === "ios" ? tabBarHeight : 0,
+        },
       ]}
     >
       {/* ヘッダー全体をまとめるView */}
@@ -53,7 +58,7 @@ export default function HomeScreen() {
       <View style={{ flex: 1 }}>
         <TimetableView />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
