@@ -17,10 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Database } from "@/services/database";
 import { TimetableData } from "@/types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // メニュー項目を再利用可能なコンポーネントとして定義
 const MenuItem = ({ icon, text, onPress, colors, isLast = false }) => (
