@@ -12,6 +12,7 @@ export interface Task {
   content: string; // 課題の内容
   due_date: string; // 課題の締め切り (YYYY-MM-DD形式)
   is_done: number; // 課題の完了状態
+  notification_id?: string | null; // 通知ID（オプション）
 }
 
 export interface ClassSession {

@@ -1,3 +1,4 @@
+import * as Notifications from "expo-notifications";
 import * as SQLite from "expo-sqlite";
 
 import {
@@ -41,10 +42,55 @@ const initDB = async (): Promise<void> => {
         content TEXT NOT NULL,
         due_date TEXT NOT NULL,
         is_done INTEGER NOT NULL DEFAULT 0,
+        notification_id TEXT,
         FOREIGN KEY (subject_id) REFERENCES Subjects (id) ON DELETE CASCADE
       );
     `);
   });
+};
+
+/**
+ * 課題の締め切り当日の午前9時に通知を予約する
+ */
+const scheduleTaskNotification = async (
+  taskContent: string,
+  dueDate: string
+): Promise<string | null> => {
+  try {
+    const triggerDate = new Date(`${dueDate}T09:00:00`);
+    if (triggerDate.getTime() < Date.now()) {
+      return null;
+    }
+    const trigger: Notifications.CalendarTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      year: triggerDate.getFullYear(),
+      month: triggerDate.getMonth() + 1,
+      day: triggerDate.getDate(),
+      hour: 9,
+      minute: 0,
+    };
+
+    return await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "今日の課題締め切りです！",
+        body: taskContent,
+        sound: "default",
+      },
+      trigger,
+    });
+  } catch (error) {
+    console.error("通知の予約に失敗:", error);
+    return null;
+  }
+};
+
+/**
+ * 予約された通知をIDを指定してキャンセルする
+ */
+const cancelNotification = async (notificationId: string) => {
+  if (notificationId) {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  }
 };
 
 /**
@@ -82,44 +128,123 @@ const addClass = async (
 };
 
 /**
- * 時間割データを取得する
- * @returns データベースから取得した授業とコマのデータ
+ * 新しい課題を追加し、通知を予約する
  */
-const getTimetable = async (): Promise<{
-  subjects: Subject[];
-  classes: ClassSession[];
-}> => {
-  // getAllAsync は複数の行をオブジェクトの配列として取得する
-  const subjects = await db.getAllAsync<Subject>("SELECT * FROM Subjects;");
-  const classes = await db.getAllAsync<ClassSession>("SELECT * FROM Classes;");
-  return { subjects, classes };
-};
-
-/**
- * 指定したIDの授業とそのコマを取得する
- * @param id - 授業のID
- * @returns 授業情報と紐づくコマの配列
- */
-const getSubjectById = async (
-  id: number
-): Promise<{ subject: Subject | null; sessions: ClassSession[] }> => {
-  // 単一の授業を取得
-  const subject =
-    db.getAllSync<Subject>("SELECT * FROM Subjects WHERE id = ?;", id)[0] ||
-    null;
-  // 授業に紐づくコマを取得
-  const sessions = await db.getAllAsync<ClassSession>(
-    "SELECT * FROM Classes WHERE subject_id = ?;",
-    id
+const addTask = async (
+  task: Omit<Task, "id" | "is_done" | "notification_id">
+): Promise<number> => {
+  const notificationId = await scheduleTaskNotification(
+    task.content,
+    task.due_date
   );
-  return { subject, sessions };
+  const result = await db.runAsync(
+    "INSERT INTO Tasks (subject_id, content, due_date, notification_id) VALUES (?, ?, ?, ?);",
+    task.subject_id,
+    task.content,
+    task.due_date,
+    notificationId
+  );
+  return result.lastInsertRowId;
 };
 
 /**
- * 授業を削除する
- * @param id - 削除する授業のID
+ * 課題の完了状態を更新し、必要であれば通知をキャンセルする
+ */
+const updateTaskStatus = async (
+  taskId: number,
+  isDone: boolean
+): Promise<void> => {
+  if (isDone) {
+    const task = await db.getFirstAsync<Task>(
+      "SELECT notification_id FROM Tasks WHERE id = ?;",
+      taskId
+    );
+    if (task?.notification_id) {
+      await cancelNotification(task.notification_id);
+    }
+    await db.runAsync(
+      "UPDATE Tasks SET is_done = 1, notification_id = NULL WHERE id = ?;",
+      taskId
+    );
+  } else {
+    const task = await db.getFirstAsync<Task>(
+      "SELECT content, due_date FROM Tasks WHERE id = ?;",
+      taskId
+    );
+    if (task) {
+      const newNotificationId = await scheduleTaskNotification(
+        task.content,
+        task.due_date
+      );
+      await db.runAsync(
+        "UPDATE Tasks SET is_done = 0, notification_id = ? WHERE id = ?;",
+        newNotificationId,
+        taskId
+      );
+    }
+  }
+};
+
+/**
+ * 課題を更新し、通知を再予約する
+ */
+const updateTask = async (
+  taskId: number,
+  content: string,
+  dueDate: string
+): Promise<void> => {
+  const oldTask = await db.getFirstAsync<Task>(
+    "SELECT notification_id FROM Tasks WHERE id = ?;",
+    taskId
+  );
+  if (oldTask?.notification_id) {
+    await cancelNotification(oldTask.notification_id);
+  }
+  const newNotificationId = await scheduleTaskNotification(content, dueDate);
+  await db.runAsync(
+    "UPDATE Tasks SET content = ?, due_date = ?, notification_id = ? WHERE id = ?;",
+    content,
+    dueDate,
+    newNotificationId,
+    taskId
+  );
+};
+
+/**
+ * 課題を削除し、関連する通知もキャンセルする
+ */
+const deleteTask = async (taskId: number): Promise<void> => {
+  const task = await db.getFirstAsync<Task>(
+    "SELECT notification_id FROM Tasks WHERE id = ?;",
+    taskId
+  );
+  if (task?.notification_id) {
+    await cancelNotification(task.notification_id);
+  }
+  await db.runAsync("DELETE FROM Tasks WHERE id = ?;", taskId);
+};
+
+/**
+ * 授業削除時に、関連するすべての通知をキャンセルするためのヘルパー関数
+ */
+const getNotificationIdsForSubject = async (
+  subjectId: number
+): Promise<string[]> => {
+  const results = await db.getAllAsync<{ notification_id: string }>(
+    "SELECT notification_id FROM Tasks WHERE subject_id = ? AND notification_id IS NOT NULL;",
+    subjectId
+  );
+  return results.map((r) => r.notification_id);
+};
+
+/**
+ * 授業を削除し、関連するすべての通知をキャンセルする
  */
 const deleteSubject = async (id: number): Promise<void> => {
+  const notificationIds = await getNotificationIdsForSubject(id);
+  for (const notificationId of notificationIds) {
+    await cancelNotification(notificationId);
+  }
   await db.runAsync("DELETE FROM Subjects WHERE id = ?;", id);
 };
 
@@ -154,47 +279,42 @@ const updateClass = async (
 };
 
 /**
- * 新しい課題を追加する
- * @param task - 追加する課題情報 (IDとis_doneは除く)
- * @returns 追加された課題のID
+ * 時間割データを取得する
  */
-const addTask = async (task: Omit<Task, "id" | "is_done">): Promise<number> => {
-  const result = await db.runAsync(
-    "INSERT INTO Tasks (subject_id, content, due_date) VALUES (?, ?, ?);",
-    task.subject_id,
-    task.content,
-    task.due_date
-  );
-  return result.lastInsertRowId;
+const getTimetable = async (): Promise<{
+  subjects: Subject[];
+  classes: ClassSession[];
+}> => {
+  const subjects = await db.getAllAsync<Subject>("SELECT * FROM Subjects;");
+  const classes = await db.getAllAsync<ClassSession>("SELECT * FROM Classes;");
+  return { subjects, classes };
 };
 
 /**
- * 特定の授業に関連する課題をすべて取得する (締め切り順)
- * @param subjectId - 授業のID
- * @returns 課題のリスト
+ * 指定したIDの授業とそのコマを取得する
+ */
+const getSubjectById = async (
+  id: number
+): Promise<{ subject: Subject | null; sessions: ClassSession[] }> => {
+  const subject = await db.getFirstAsync<Subject>(
+    "SELECT * FROM Subjects WHERE id = ?;",
+    id
+  );
+  const sessions = await db.getAllAsync<ClassSession>(
+    "SELECT * FROM Classes WHERE subject_id = ?;",
+    id
+  );
+  return { subject, sessions };
+};
+
+/**
+ * 特定の授業に関連する課題をすべて取得する
  */
 const getTasksBySubjectId = async (subjectId: number): Promise<Task[]> => {
   // getAllAsyncを使って、条件に一致するすべての行をオブジェクトの配列として取得します。
   return await db.getAllAsync<Task>(
     "SELECT * FROM Tasks WHERE subject_id = ? ORDER BY due_date ASC;",
     subjectId
-  );
-};
-
-/**
- * 課題の完了状態を更新する
- * @param taskId - 更新する課題のID
- * @param isDone - 新しい完了状態 (true/false)
- */
-const updateTaskStatus = async (
-  taskId: number,
-  isDone: boolean
-): Promise<void> => {
-  // isDoneがtrueなら1、falseなら0をデータベースに保存します。
-  await db.runAsync(
-    "UPDATE Tasks SET is_done = ? WHERE id = ?;",
-    isDone ? 1 : 0,
-    taskId
   );
 };
 
@@ -269,8 +389,7 @@ const getAllDataForExport = async (): Promise<TimetableData> => {
       day_of_week: c.day_of_week,
       period: c.period,
     }))
-    .filter((c) => c.subjectIndex !== -1); // 見つからなかったものは除外
-
+    .filter((c) => c.subjectIndex !== -1);
   return { subjects, classes };
 };
 
@@ -312,6 +431,20 @@ const importData = async (data: TimetableData): Promise<void> => {
   });
 };
 
+const scheduleTestNotification = async () => {
+  console.log("--- テスト通知を5秒後に予約します ---");
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "これはテスト通知です",
+      body: "この通知が表示されれば、通知機能自体は正常に動作しています。",
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 5,
+    },
+  });
+};
+
 // 作成した関数をエクスポート
 export const Database = {
   initDB,
@@ -325,9 +458,12 @@ export const Database = {
   addTask,
   getTasksBySubjectId,
   updateTaskStatus,
+  updateTask,
+  deleteTask,
   getAllTasks,
   getIncompleteTasksCount,
   getIncompleteTaskCountsBySubject,
   getAllDataForExport,
   importData,
+  scheduleTestNotification,
 };
