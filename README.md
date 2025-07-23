@@ -28,7 +28,7 @@ iOS と Android で動作する React Native アプリです。Android 向けは
   - [Expo](https://expo.dev/)
 - Navigation
   - [React Navigation](https://reactnavigation.org/)
-- Detabase
+- Database
   - SQLite ([expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/))
 
 ## Usage
