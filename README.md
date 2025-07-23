@@ -4,6 +4,10 @@ univ-app は、時間割と課題を管理するアプリです。
 
 iOS と Android で動作する React Native アプリです。Android 向けは、 [Release](https://github.com/shioncha/univ-app/releases) から APK をダウンロードできます。iOS 向けは、バイナリを配布していませんが、Expo Go を使ってアプリを起動できます。
 
+## Motivation
+
+納得のいく時間割アプリがなかったため、React Native を使って作成しました。時間割の表示と課題の管理を一つのアプリで行えるようにしています。また、時間割の自動追加機能や課題の提出期限通知など、あると嬉しい便利な機能を追加しています。
+
 ## Features
 
 - 📅 時間割の表示
@@ -13,6 +17,19 @@ iOS と Android で動作する React Native アプリです。Android 向けは
 - 📷 QR コードをスキャンして、時間割を共有
 - 📱 Android と iOS の両方で動作
 - 🌙 ダークモードに切り替え可能
+
+## Tech Stack
+
+- Language
+  - [JavaScript](https://www.javascript.com/)
+  - [TypeScript](https://www.typescriptlang.org/)
+- Framework
+  - [React Native](https://reactnative.dev/)
+  - [Expo](https://expo.dev/)
+- Navigation
+  - [React Navigation](https://reactnavigation.org/)
+- Detabase
+  - SQLite ([expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/))
 
 ## Usage
 
